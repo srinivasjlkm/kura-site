@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/load.js';
+const c = site.contact.fields;
+const link = (v) => (/^https?:\/\//.test(v) ? v : `https://${v}`);
+const rows = [
+  c.address && ['Address', c.address, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`, 'Open in Google Maps'],
+  c.phone && ['Phone', c.phone, `tel:${c.phone.replace(/[^+\d]/g, '')}`, ''],
+  c.instagram && ['Instagram', c.instagram, link(c.instagram), ''],
+  c.linkedin && ['LinkedIn', c.linkedin, link(c.linkedin), ''],
+].filter(Boolean);
+---
+<Base title="Contact" description="Contact Kura Design.">
+  <div class="wrap">
+    <h1 class="page-title">Contact</h1>
+    {c.email && <p class="contact-big"><a href={`mailto:${c.email}`}>{c.email}</a></p>}
+    <section class="section grid">
+      <div class="rows">{rows.map(([k, v, href, label]) => (
+        <div class="row"><h3>{k}</h3><p>{label ? <>{v}<br /><a href={href}>{label}</a></> : <a href={href}>{v}</a>}</p></div>
+      ))}</div>
+    </section>
+  </div>
+</Base>

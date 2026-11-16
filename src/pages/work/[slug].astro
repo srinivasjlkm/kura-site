@@ -1,0 +1,62 @@
+---
+import Base from '../../layouts/Base.astro';
+import Pic from '../../components/Pic.astro';
+import { projects, sizeName, url } from '../../data/load.js';
+export function getStaticPaths() { return projects.map((p, i) => ({ params: { slug: p.slug }, props: { p, next: projects[(i + 1) % projects.length] } })); }
+const { p, next } = Astro.props;
+const facts = [['Type', p.type], ['Scale', sizeName(p.size)], ['Location', p.location], ['Year', p.year], ['Status', p.status], ['Area', p.area], ['Client', p.client]].filter(([, v]) => v);
+const [cover, ...rest] = p.images;
+// Collage: every image keeps its own proportions. Rows alternate between one large image and a
+// group of two or three set side by side at equal height, so a long project reads as a sequence, not a stack.
+const rows = [];
+let row = [], sum = 0;
+rest.forEach((im, i) => {
+  const ar = im.w / im.h;
+  const limit = rows.length % 2 === 0 ? 1.9 : 3.8; // widest a row may get, as width divided by height
+  if (row.length && (sum + ar > limit || row.length === 3)) { rows.push(row); row = []; sum = 0; }
+  row.push({ im, ar, i: i + 1 }); sum += ar;
+});
+if (row.length) rows.push(row);
+---
+<Base title={p.title} description={p.paragraphs[0] || ''} image={cover.files.at(-1).src} preload={cover}>
+  <article class="wrap">
+    <header class="p-head grid"><h1 class="p-title">{p.title}</h1></header>
+    <div class="gallery" style="margin-top:0"><div class={`g-row solo ${cover.w / cover.h < 1.2 ? 'tall' : ''}`}>
+      <button type="button" data-i="0" style={`--ar:${(cover.w / cover.h).toFixed(4)}`} aria-label="View image 1 full screen"><Pic image={cover} alt={`${p.title}, image 1`} eager /></button>
+    </div></div>
+    <div class="grid p-body">
+      {facts.length > 0 && <dl class="facts">{facts.map(([k, v]) => <><dt>{k}</dt><dd>{v}</dd></>)}</dl>}
+      {p.paragraphs.length > 0 && <div class="prose">{p.paragraphs.map((t) => <p>{t}</p>)}</div>}
+    </div>
+    {rows.length > 0 && (
+      <div class="gallery">
+        {rows.map((r) => (
+          <div class={`g-row ${r.length === 1 ? 'solo' : ''} ${r.length === 1 && r[0].ar < 1.2 ? 'tall' : ''}`}>
+            {r.map(({ im, ar, i }) => (
+              <button type="button" data-i={i} style={`--ar:${ar.toFixed(4)}`} aria-label={`View image ${i + 1} full screen`}>
+                <Pic image={im} alt={`${p.title}, image ${i + 1}`} sizes={`(min-width: 600px) ${Math.round(100 / r.length)}vw, 100vw`} />
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    )}
+    {next && next !== p && <nav class="next section" aria-label="Next project"><span class="muted">Next project</span><a href={url(`work/${next.slug}/`)}>{next.title}</a></nav>}
+  </article>
+  <dialog class="viewer" aria-label="Image viewer">
+    <div class="viewer-stage">
+      <div class="viewer-bar"><span data-count></span><span><button type="button" data-step="-1">Previous</button><button type="button" data-step="1">Next</button><button type="button" data-close>Close</button></span></div>
+      <img alt="" />
+    </div>
+  </dialog>
+  <script>
+    const d = document.querySelector('dialog.viewer');
+    const thumbs = [...document.querySelectorAll('.gallery button img')];
+    const big = d.querySelector('img'), count = d.querySelector('[data-count]');
+    let i = 0;
+    function show(n) { i = (n + thumbs.length) % thumbs.length; big.srcset = thumbs[i].srcset; big.sizes = '100vw'; big.src = thumbs[i].src; big.alt = thumbs[i].alt; count.textContent = `${i + 1} of ${thumbs.length}`; }
+    document.querySelectorAll('.gallery button').forEach((b) => b.addEventListener('click', () => { show(Number(b.dataset.i)); d.showModal(); }));
+    d.addEventListener('click', (e) => { const t = e.target; if (t.dataset.step) show(i + Number(t.dataset.step)); else if (t.hasAttribute('data-close') || t === big) d.close(); });
+    d.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') show(i + 1); if (e.key === 'ArrowLeft') show(i - 1); });
+  </script>
+</Base>

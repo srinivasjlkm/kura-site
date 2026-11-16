@@ -1,0 +1,10 @@
+---
+import Pic from './Pic.astro';
+import { url } from '../data/load.js';
+const { p, sizes = '(min-width: 900px) 33vw, (min-width: 600px) 50vw, 100vw' } = Astro.props;
+---
+<a class="card" href={url(`work/${p.slug}/`)} data-size={p.size} data-type={p.type}>
+  <Pic image={p.images[0]} alt="" sizes={sizes} />
+  <span class="card-title">{p.title}</span>
+  <span class="card-meta">{[p.type, p.location].filter(Boolean).join(', ')}</span>
+</a>

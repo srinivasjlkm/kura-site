@@ -1,0 +1,8 @@
+---
+import { url } from '../data/load.js';
+const { image, alt = '', sizes = '100vw', eager = false, cls = '' } = Astro.props;
+const srcset = image.files.map((f) => `${url(f.src)} ${f.width}w`).join(', ');
+const largest = image.files.at(-1);
+---
+<img class={cls} style={image.bg ? `--ph:${image.bg}` : undefined} src={url(largest.src)} srcset={srcset} sizes={sizes} width={image.w} height={image.h} alt={alt}
+  loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : undefined} />

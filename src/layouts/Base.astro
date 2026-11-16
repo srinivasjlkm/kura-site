@@ -1,0 +1,43 @@
+---
+import '@fontsource-variable/jost';
+import '../styles/site.css';
+import { site, url } from '../data/load.js';
+const { title, description = '', image, preload } = Astro.props;
+const full = title ? `${title} | Kura Design` : 'Kura Design | Architecture and design';
+const path = Astro.url.pathname;
+const nav = [['work/', 'Work'], ['studio/', 'Studio'], ['contact/', 'Contact']];
+const c = site.contact.fields;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{full}</title>
+  <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+  {description && <meta name="description" content={description} />}
+  <meta property="og:title" content={full} />
+  {preload && <link rel="preload" as="image" imagesrcset={preload.files.map((f) => `${url(f.src)} ${f.width}w`).join(', ')} imagesizes="100vw" fetchpriority="high" />}
+  {image && <meta property="og:image" content={new URL(url(image), Astro.site)} />}
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="band">
+    <header class="top wrap">
+      <a class="mark" href={url()} aria-label="Kura Design Studio, home"><span>Kura</span><span>Design</span><span>Studio</span></a>
+      <nav aria-label="Main">
+        {nav.map(([href, label]) => <a href={url(href)} aria-current={path.startsWith(url(href)) ? 'page' : undefined}>{label}</a>)}
+      </nav>
+    </header>
+    <slot name="band" />
+  </div>
+  <main id="main"><slot /></main>
+  <div class="band foot-band">
+    <footer class="foot wrap">
+      <p class="mark"><span>Kura</span><span>Design</span><span>Studio</span></p>
+      <p>{c.address}</p>
+      <p>{c.email && <a href={`mailto:${c.email}`}>{c.email}</a>}</p>
+    </footer>
+  </div>
+</body>
+</html>

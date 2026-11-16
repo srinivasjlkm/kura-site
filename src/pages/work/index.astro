@@ -1,0 +1,52 @@
+---
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { projects, sizeName, SIZE_ORDER } from '../../data/load.js';
+const sizes = SIZE_ORDER.filter((s) => projects.some((p) => p.size === s));
+const types = [...new Set(projects.map((p) => p.type).filter(Boolean))].sort();
+---
+<Base title="Work" description={`${projects.length} projects by Kura Design, from furniture to masterplans.`}>
+  <div class="wrap">
+    <h1 class="page-title">Work</h1>
+    <div class="filters" hidden>
+      {sizes.length > 1 && (
+        <div class="filter" data-group="size"><span class="filter-name">Scale</span>
+          <button type="button" data-value="" aria-pressed="true">All</button>
+          {sizes.map((s) => <button type="button" data-value={s} aria-pressed="false">{sizeName(s)}</button>)}
+        </div>
+      )}
+      {types.length > 1 && (
+        <div class="filter" data-group="type"><span class="filter-name">Type</span>
+          <button type="button" data-value="" aria-pressed="true">All</button>
+          {types.map((t) => <button type="button" data-value={t} aria-pressed="false">{t}</button>)}
+        </div>
+      )}
+    </div>
+    <div class="cols" id="list">{projects.map((p) => <Card p={p} />)}</div>
+    <p class="empty muted" id="empty" hidden>No projects match both filters. Choose All in one of them to see more.</p>
+  </div>
+  <script>
+    const state = { size: '', type: '' };
+    const box = document.querySelector('.filters');
+    const cards = [...document.querySelectorAll('#list .card')];
+    const empty = document.getElementById('empty');
+    function apply() {
+      let shown = 0;
+      for (const c of cards) {
+        const ok = (!state.size || c.dataset.size === state.size) && (!state.type || c.dataset.type === state.type);
+        c.hidden = !ok; if (ok) shown++;
+      }
+      empty.hidden = shown > 0;
+      box.querySelectorAll('.filter').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === state[g.dataset.group]))));
+      const q = new URLSearchParams(); if (state.size) q.set('size', state.size); if (state.type) q.set('type', state.type);
+      history.replaceState(null, '', q.size ? '?' + q : location.pathname);
+    }
+    if (box) {
+      box.hidden = false;
+      const q = new URLSearchParams(location.search);
+      for (const k of ['size', 'type']) { const v = q.get(k); if (v && box.querySelector(`[data-group="${k}"] [data-value="${CSS.escape(v)}"]`)) state[k] = v; }
+      box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state[b.parentElement.dataset.group] = b.dataset.value; apply(); });
+      apply();
+    }
+  </script>
+</Base>
