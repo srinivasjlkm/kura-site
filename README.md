@@ -13,6 +13,7 @@ Commands:
 
 `scripts/ingest.mjs` reads the folder. `docs/DESIGN.md` is the style guide.
 
-Publishing: `scripts/fetch-drive.mjs` downloads the Drive folder when `CONTENT_URL` and `CONTENT_KEY` are set (the host's build does this). `apps-script/Code.gs` runs in the Google account that owns the folder: it serves the files to the build and calls the host's deploy hook when the folder changes.
+Publishing (no Google sign-in involved; the Drive folder is shared as "Anyone with the link can view"):
 
-Not yet connected or tested live: the Apps Script deployment and the Cloudflare Pages project.
+- `scripts/fetch-drive.mjs` downloads the folder before a build when `GOOGLE_API_KEY` and `DRIVE_FOLDER_ID` are set. Google Docs in the folder are saved as text files.
+- `worker/watcher.js` is a Cloudflare Worker that checks the folder every 5 minutes and calls the Cloudflare Pages deploy hook once a change has settled.
