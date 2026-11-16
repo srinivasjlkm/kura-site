@@ -93,6 +93,7 @@ function checkForChanges() {
 
 /** Run once by hand: creates the key and the 5-minute timer. */
 function setup() {
+  if (!P.getProperty('ROOT_ID')) P.setProperty('ROOT_ID', '1me4_HIVENtpHoSu7e5qNMN0ogYjhXD85');
   if (!P.getProperty('KEY')) P.setProperty('KEY', Utilities.getUuid() + Utilities.getUuid());
   ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('checkForChanges').timeBased().everyMinutes(5).create();
