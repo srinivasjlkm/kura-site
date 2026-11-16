@@ -9,7 +9,11 @@ async function get(fetchFn, url, tries = 4) {
     const r = await fetchFn(url);
     if (r.ok) return r;
     const retry = r.status === 429 || r.status >= 500 || r.status === 403;
-    if (!retry || t >= tries) throw new Error(`Google Drive answered ${r.status} for ${url.split('?')[0]}`);
+    if (!retry || t >= tries) {
+      let why = '';
+      try { why = (await r.json()).error?.message || ''; } catch {}
+      throw new Error(`Google Drive answered ${r.status} for ${url.split('?')[0]}${why ? `: ${why.replace(/key=[\w-]+/g, 'key=…')}` : ''}.`);
+    }
     await new Promise((s) => setTimeout(s, 800 * t * t));
   }
 }
