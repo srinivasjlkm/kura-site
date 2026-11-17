@@ -25,7 +25,10 @@ export async function check(env, fetchFn = fetch) {
   }
   st.cursor = (st.cursor + count) % n;
 
-  const first = !Object.keys(st.seen).length;
+  // Until every folder has been looked at once, this is still the first look, not a change.
+  const first = !st.ready;
+  st.covered = (st.covered || 0) + count;
+  if (st.covered >= n) st.ready = true;
   let changed = false;
   for (const [k, v] of Object.entries(now)) if (st.seen[k] !== v) { st.seen[k] = v; changed = true; }
   const live = new Set(['/layout', '/site', '/people', ...o.projectDirs.map((d) => d.id)]);
