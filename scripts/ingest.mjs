@@ -31,16 +31,20 @@ async function resize(src, outDir, n) {
   const w = rotated ? meta.height : meta.width, h = rotated ? meta.width : meta.height;
   const widths = WIDTHS.filter((x) => x < w);
   if (widths.length < WIDTHS.length) widths.push(Math.min(w, WIDTHS.at(-1)));
-  const files = [];
-  for (const width of [...new Set(widths)]) {
-    const name = `${String(n).padStart(2, '0')}-${width}.webp`;
-    const out = path.join(outDir, name);
-    const old = await fs.stat(out).catch(() => null);
-    if (!old || old.mtimeMs < st.mtimeMs) {
-      await sharp(src).rotate().resize({ width, withoutEnlargement: true }).webp({ quality: 72, effort: 5 }).toFile(out);
-    }
-    files.push({ width, name });
+  const list = [...new Set(widths)].map((width) => ({ width, name: `${String(n).padStart(2, '0')}-${width}.webp` }));
+  const todo = [];
+  for (const f of list) {
+    const old = await fs.stat(path.join(outDir, f.name)).catch(() => null);
+    if (!old || old.mtimeMs < st.mtimeMs) todo.push(f);
   }
+  if (todo.length) {
+    // Decode the original once at the largest size needed, then cut the smaller sizes from that.
+    const top = Math.max(...todo.map((f) => f.width));
+    const { data, info } = await sharp(src).rotate().resize({ width: top, withoutEnlargement: true }).raw().toBuffer({ resolveWithObject: true });
+    const raw = { raw: { width: info.width, height: info.height, channels: info.channels } };
+    await Promise.all(todo.map((f) => sharp(data, raw).resize({ width: f.width, withoutEnlargement: true }).webp({ quality: 72, effort: 4 }).toFile(path.join(outDir, f.name))));
+  }
+  const files = list;
   const { dominant: d } = await sharp(src).resize(64).stats();
   const bg = '#' + [d.r, d.g, d.b].map((v) => v.toString(16).padStart(2, '0')).join('');
   return { w, h, bg, files };
@@ -60,13 +64,19 @@ async function project(root, folder, taken) {
   taken.add(slug);
   const outDir = path.join(MEDIA, slug);
   await fs.mkdir(outDir, { recursive: true });
-  const images = [];
-  for (const name of imageNames) {
-    try {
-      const r = await resize(path.join(dir, name), outDir, images.length + 1);
-      images.push({ w: r.w, h: r.h, bg: r.bg, files: r.files.map((f) => ({ width: f.width, src: `media/${slug}/${f.name}` })) });
-    } catch (e) { warn(`"${folder}/${name}" could not be read as an image and was skipped.`); }
-  }
+  // Three images at a time; each keeps its place in the folder's order.
+  const results = new Array(imageNames.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: 3 }, async () => {
+    for (let i; (i = next++) < imageNames.length; ) {
+      try {
+        const r = await resize(path.join(dir, imageNames[i]), outDir, i + 1);
+        results[i] = { w: r.w, h: r.h, bg: r.bg, files: r.files.map((f) => ({ width: f.width, src: `media/${slug}/${f.name}` })) };
+      } catch (e) { warn(`"${folder}/${imageNames[i]}" could not be read as an image and was skipped.`); }
+    }
+  }));
+  const images = results.filter(Boolean);
+  console.log(`  ${folder}: ${images.length} images`);
   if (!images.length) { warn(`"${folder}" has no usable images and was left off the site.`); return null; }
   const size = normalizeSize(fields.size || fields.category || '');
   if ((fields.size || fields.category) && !size) warn(`"${folder}": size "${fields.size || fields.category}" is not Small, Medium, Large or X Large.`);
