@@ -1,25 +1,54 @@
 ---
 import Base from '../layouts/Base.astro';
 import { site } from '../data/load.js';
-const { fields, paragraphs } = site.studio;
-const services = (fields.services || '').split(',').map((s) => s.trim()).filter(Boolean);
+const { fields, sections = [] } = site.studio;
+const list = (v) => (v || '').split(',').map((s) => s.trim()).filter(Boolean);
+const services = list(fields.services), stages = list(fields.stages);
+const isMeaning = (s) => /^meaning/i.test(s.title);
+const intro = sections.find((s) => !s.title);
+const meaning = sections.find(isMeaning);
+const rest = sections.filter((s) => s.title && !isMeaning(s));
+const description = (intro || rest[0])?.paragraphs[0] || '';
 ---
-<Base title="Studio" description={paragraphs[0] || ''}>
+<Base title="Studio" description={description}>
   <div class="wrap">
     <h1 class="page-title">Studio</h1>
-    <div class="grid"><div class="studio-text">{paragraphs.map((t) => <p>{t}</p>)}</div></div>
+
+    {meaning && (
+      <section class="grid define">
+        <p class="define-word">{fields.word || 'Kura'}{fields.pronunciation && <span class="define-say"> ({fields.pronunciation})</span>}</p>
+        <ol class="define-list">{meaning.paragraphs.map((t) => <li>{t.replace(/^\d+[.)]\s*/, '')}</li>)}</ol>
+      </section>
+    )}
+
+    {intro && <div class="grid section"><div class="studio-text">{intro.paragraphs.map((t) => <p>{t}</p>)}</div></div>}
+
+    {rest.map((s) => (
+      <section class="section grid">
+        <h2 class="h-section">{s.title}</h2>
+        <div class="studio-body">{s.paragraphs.map((t) => <p>{t}</p>)}</div>
+        {/^scope/i.test(s.title) && (services.length > 0 || stages.length > 0) && (
+          <div class="studio-lists">
+            {services.length > 0 && <div><h3>Services</h3><ul>{services.map((x) => <li>{x}</li>)}</ul></div>}
+            {stages.length > 0 && <div><h3>Design stages</h3><ul>{stages.map((x) => <li>{x}</li>)}</ul></div>}
+          </div>
+        )}
+      </section>
+    ))}
+
     {site.people.length > 0 && (
       <section class="section grid">
         <h2 class="h-section">Partners</h2>
         <div class="rows">{site.people.map((p) => (
-          <div class="row"><div><h3>{p.name}</h3><p class="muted">{p.role}</p></div><div>{p.paragraphs.map((t) => <p>{t}</p>)}</div></div>
+          <div class="row">
+            <div>
+              <h3>{p.name}</h3>
+              <p class="muted">{[p.role, p.country].filter(Boolean).join(', ')}</p>
+              {p.qualifications?.length > 0 && <ul class="quals muted">{p.qualifications.map((q) => <li>{q}</li>)}</ul>}
+            </div>
+            <div class="bio">{p.paragraphs.map((t) => <p>{t}</p>)}</div>
+          </div>
         ))}</div>
-      </section>
-    )}
-    {services.length > 0 && (
-      <section class="section grid">
-        <h2 class="h-section">Services</h2>
-        <ul class="rows">{services.map((s) => <li class="row"><h3>{s}</h3><span></span></li>)}</ul>
       </section>
     )}
   </div>

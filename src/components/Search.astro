@@ -1,0 +1,105 @@
+---
+import { url } from '../data/load.js';
+---
+<dialog class="search" id="search" aria-label="Search the site" data-index={url('search.json')}>
+  <div class="search-bar wrap">
+    <label class="sr" for="search-q">Search projects, places and people</label>
+    <input id="search-q" type="search" placeholder="Search projects, places, people" autocomplete="off" spellcheck="false" />
+    <button type="button" data-close>Close</button>
+  </div>
+  <div class="search-out wrap">
+    <p class="search-note muted" id="search-note"></p>
+    <ul id="search-list"></ul>
+  </div>
+</dialog>
+<script>
+  const d = document.getElementById('search');
+  const q = document.getElementById('search-q');
+  const list = document.getElementById('search-list');
+  const note = document.getElementById('search-note');
+  let items = null, active = -1;
+
+  const norm = (s) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  // Edit distance, capped: enough to forgive one or two typing slips.
+  function near(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return false;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i]; let low = i;
+      for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); low = Math.min(low, cur[j]); }
+      if (low > max) return false; prev = cur;
+    }
+    return prev[b.length] <= max;
+  }
+  function wordScore(term, words) {
+    let best = 0;
+    for (const w of words) {
+      if (w === term) return 3;
+      if (w.startsWith(term)) best = Math.max(best, 2);
+      else if (term.length >= 3 && w.includes(term)) best = Math.max(best, 1);
+      else if (term.length >= 4 && near(term, w.slice(0, term.length + 1), term.length >= 7 ? 2 : 1)) best = Math.max(best, 0.6);
+    }
+    return best;
+  }
+  function search(text) {
+    const terms = norm(text).split(' ').filter(Boolean);
+    if (!terms.length) return { hits: [], loose: false };
+    const scored = items.map((it) => {
+      let total = 0, matched = 0;
+      for (const term of terms) {
+        const s = Math.max(wordScore(term, it.tw) * 3, wordScore(term, it.kw) * 2, wordScore(term, it.xw));
+        if (s > 0) matched++; total += s;
+      }
+      return { it, total, matched };
+    }).filter((r) => r.matched > 0).sort((a, b) => b.matched - a.matched || b.total - a.total);
+    const all = scored.filter((r) => r.matched === terms.length);
+    return all.length ? { hits: all.slice(0, 12), loose: false } : { hits: scored.slice(0, 8), loose: scored.length > 0 };
+  }
+  function render() {
+    const text = q.value.trim();
+    active = -1; list.textContent = '';
+    if (!items) { note.textContent = 'Loading…'; return; }
+    if (!text) { note.textContent = 'Type a project name, a place such as Chengdu, or a type such as school.'; return; }
+    const { hits, loose } = search(text);
+    note.textContent = !hits.length ? `Nothing matches “${text}”. Try a place, a building type, or part of a project name.` : loose ? `No exact match for “${text}”. These are the closest.` : `${hits.length} ${hits.length === 1 ? 'result' : 'results'}`;
+    for (const { it } of hits) {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = it.u;
+      if (it.i) { const im = document.createElement('img'); im.src = it.i; im.alt = ''; im.loading = 'lazy'; im.style.aspectRatio = it.a; a.append(im); } else a.append(document.createElement('span'));
+      const b = document.createElement('span'); b.className = 'search-text';
+      const t = document.createElement('span'); t.className = 'search-title'; t.textContent = it.t;
+      const k = document.createElement('span'); k.className = 'muted'; k.textContent = it.k || '';
+      b.append(t, k); a.append(b); li.append(a); list.append(li);
+    }
+  }
+  async function open() {
+    if (!d.open) d.showModal();
+    q.focus(); q.select();
+    if (!items) {
+      render();
+      try {
+        const raw = await (await fetch(d.dataset.index)).json();
+        items = raw.map((it) => ({ ...it, tw: norm(it.t).split(' '), kw: norm(it.k || '').split(' '), xw: [...new Set(norm(it.x || '').split(' '))] }));
+      } catch { items = []; note.textContent = 'Search could not load. Check your connection and try again.'; return; }
+    }
+    render();
+  }
+  function move(step) {
+    const links = [...list.querySelectorAll('a')]; if (!links.length) return;
+    active = (active + step + links.length) % links.length;
+    links.forEach((a, i) => a.classList.toggle('on', i === active));
+    links[active].scrollIntoView({ block: 'nearest' });
+  }
+  document.querySelectorAll('[data-search-open]').forEach((b) => b.addEventListener('click', open));
+  document.addEventListener('keydown', (e) => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    if (e.key === '/' && !typing && !d.open) { e.preventDefault(); open(); }
+  });
+  q.addEventListener('input', render);
+  q.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') { const links = list.querySelectorAll('a'); const a = links[active] || links[0]; if (a) location.href = a.href; }
+  });
+  d.addEventListener('click', (e) => { if (e.target === d || e.target.hasAttribute('data-close')) d.close(); });
+</script>

@@ -4,20 +4,63 @@ import { site } from '../data/load.js';
 const c = site.contact.fields;
 const link = (v) => (/^https?:\/\//.test(v) ? v : `https://${v}`);
 const rows = [
-  c.address && ['Address', c.address, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`, 'Open in Google Maps'],
+  c.address && ['Office', c.address, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`, 'Open in Google Maps'],
+  c.email && ['Email', c.email, `mailto:${c.email}`, ''],
   c.phone && ['Phone', c.phone, `tel:${c.phone.replace(/[^+\d]/g, '')}`, ''],
   c.instagram && ['Instagram', c.instagram, link(c.instagram), ''],
   c.linkedin && ['LinkedIn', c.linkedin, link(c.linkedin), ''],
 ].filter(Boolean);
+const formKey = c['form key'] || '';
 ---
-<Base title="Contact" description="Contact Kura Design.">
+<Base title="Contact" description="Contact Kura Design Studio about a project.">
   <div class="wrap">
     <h1 class="page-title">Contact</h1>
-    {c.email && <p class="contact-big"><a href={`mailto:${c.email}`}>{c.email}</a></p>}
-    <section class="section grid">
-      <div class="rows">{rows.map(([k, v, href, label]) => (
-        <div class="row"><h3>{k}</h3><p>{label ? <>{v}<br /><a href={href}>{label}</a></> : <a href={href}>{v}</a>}</p></div>
-      ))}</div>
-    </section>
+    <div class="grid contact">
+      {formKey && (
+        <form class="enquiry" id="enquiry" action="https://api.web3forms.com/submit" method="POST" novalidate>
+          <h2 class="h-section">Tell us about your project</h2>
+          <input type="hidden" name="access_key" value={formKey} />
+          <input type="hidden" name="subject" value="New enquiry from the Kura website" />
+          <input type="hidden" name="from_name" value="Kura website" />
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <label>Name<input name="name" type="text" autocomplete="name" required maxlength="100" /></label>
+          <label>Phone number<input name="phone" type="tel" autocomplete="tel" required maxlength="30" inputmode="tel" /></label>
+          <label><span>Email (optional)</span><input name="email" type="email" autocomplete="email" maxlength="120" /></label>
+          <label>Location<input name="location" type="text" autocomplete="address-level2" required maxlength="100" /></label>
+          <label>Short message<textarea name="message" rows="5" required maxlength="1500"></textarea></label>
+          <p class="form-note" id="enquiry-note" role="status" aria-live="polite"></p>
+          <button type="submit">Send message</button>
+        </form>
+      )}
+      <div class={formKey ? 'contact-side' : 'contact-wide'}>
+        <div class="rows">{rows.map(([k, v, href, label]) => (
+          <div class="row"><h3>{k}</h3><p>{label ? <>{v}<br /><a href={href}>{label}</a></> : <a href={href}>{v}</a>}</p></div>
+        ))}</div>
+      </div>
+    </div>
   </div>
+  <script>
+    const form = document.getElementById('enquiry');
+    if (form) {
+      const note = document.getElementById('enquiry-note');
+      const button = form.querySelector('button');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const missing = [...form.querySelectorAll('[required]')].find((f) => !f.value.trim());
+        if (missing) { note.textContent = `Add your ${missing.closest('label').firstChild.textContent.trim().toLowerCase()} to send the message.`; note.dataset.state = 'error'; missing.focus(); return; }
+        const email = form.elements.email;
+        if (email.value && !email.checkValidity()) { note.textContent = 'Check the email address, or leave it empty.'; note.dataset.state = 'error'; email.focus(); return; }
+        button.disabled = true; note.dataset.state = ''; note.textContent = 'Sending…';
+        try {
+          const r = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.success) throw new Error(j.message || 'not sent');
+          form.reset(); note.dataset.state = 'ok'; note.textContent = 'Message sent. We will get back to you soon.';
+        } catch {
+          note.dataset.state = 'error'; note.textContent = 'The message was not sent. Try again, or use the email address on this page.';
+        }
+        button.disabled = false;
+      });
+    }
+  </script>
 </Base>

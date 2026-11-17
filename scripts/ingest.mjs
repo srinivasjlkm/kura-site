@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { parseInfo, normalizeSize, isYes, slugify, isImage, orderImages } from './parse.mjs';
+import { sections, parseInfo, normalizeSize, isYes, slugify, isImage, orderImages } from './parse.mjs';
 
 const CONTENT = path.resolve(process.env.CONTENT_DIR || 'content');
 const MEDIA = path.resolve('public/media');
@@ -109,8 +109,9 @@ async function main() {
   const people = [];
   for (const n of (await fs.readdir(peopleDir).catch(() => [])).filter((n) => /\.txt$/i.test(n)).sort()) {
     const p = parseInfo(await readText(path.join(peopleDir, n)));
-    people.push({ name: p.fields.name || n.replace(/\.txt$/i, ''), role: p.fields.role || '', paragraphs: p.paragraphs });
+    people.push({ name: p.fields.name || n.replace(/^\d+\s*/, '').replace(/\.txt$/i, ''), role: p.fields.role || '', country: p.fields.country || '', qualifications: (p.fields.qualifications || '').split(',').map((x) => x.trim()).filter(Boolean), paragraphs: p.paragraphs });
   }
+  studio.sections = sections(studio.paragraphs);
   const data = { projects, studio, contact, home, people, warnings, built: new Date().toISOString() };
   await fs.mkdir('src/data', { recursive: true });
   await fs.writeFile('src/data/site.json', JSON.stringify(data));

@@ -2,6 +2,7 @@
 import '@fontsource-variable/jost';
 import '../styles/site.css';
 import { site, url } from '../data/load.js';
+import Search from '../components/Search.astro';
 const { title, description = '', image, preload } = Astro.props;
 const full = title ? `${title} | Kura Design` : 'Kura Design | Architecture and design';
 const path = Astro.url.pathname;
@@ -26,6 +27,7 @@ const c = site.contact.fields;
     <header class="top wrap">
       <a class="mark" href={url()} aria-label="Kura Design Studio, home"><span>Kura</span><span>Design</span><span>Studio</span></a>
       <nav aria-label="Main">
+        <button type="button" class="search-open" data-search-open aria-haspopup="dialog">Search</button>
         {nav.map(([href, label]) => <a href={url(href)} aria-current={path.startsWith(url(href)) ? 'page' : undefined}>{label}</a>)}
       </nav>
     </header>
@@ -39,5 +41,6 @@ const c = site.contact.fields;
       <p>{c.email && <a href={`mailto:${c.email}`}>{c.email}</a>}</p>
     </footer>
   </div>
+  <Search />
 </body>
 </html>

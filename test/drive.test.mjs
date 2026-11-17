@@ -61,4 +61,29 @@ test('watcher: records first, then waits for a quiet round before rebuilding onc
   assert.equal(await check(env, f), 'rebuild requested');
   assert.equal(await check(env, f), 'unchanged');
   assert.equal(hooks, 1);
+  // Removing a project folder is a change too.
+  tree.P.pop();
+  assert.match(await check(env, f), /waiting/);
+  assert.equal(await check(env, f), 'rebuild requested');
+  assert.equal(hooks, 2);
+});
+test('watcher: many folders are covered over several runs before the first look ends', async () => {
+  const big = { root: [{ id: 'P', name: 'Projects', mimeType: F }], P: Array.from({ length: 95 }, (_, i) => ({ id: `f${i}`, name: `p${String(i).padStart(2, '0')}`, mimeType: F, modifiedTime: 'a' })) };
+  for (const d of big.P) big[d.id] = [{ id: `${d.id}i`, name: '1.jpg', mimeType: 'image/jpeg', md5Checksum: 'x' }];
+  let saved = null, hooks = 0, calls = 0;
+  const env = { GOOGLE_API_KEY: 'k', DRIVE_FOLDER_ID: 'root', DEPLOY_HOOK: 'https://hook', STATE: { get: async () => saved, put: async (k, v) => void (saved = v) } };
+  const f = async (url, opt) => {
+    calls++;
+    if (opt?.method === 'POST') { hooks++; return { ok: true }; }
+    const id = new URL(url).searchParams.get('q').match(/'([^']+)' in parents/)[1];
+    return { ok: true, json: async () => ({ files: big[id] || [] }) };
+  };
+  for (let i = 0; i < 3; i++) { calls = 0; assert.match(await check(env, f), /first look/); assert.ok(calls <= 50, `run used ${calls} requests`); }
+  assert.equal(await check(env, f), 'unchanged');
+  assert.equal(hooks, 0);
+  // One folder gets a new image and Drive bumps its modified time: seen on the very next run.
+  big.P[90].modifiedTime = 'b'; big.f90.push({ id: 'new', name: '2.jpg', mimeType: 'image/jpeg', md5Checksum: 'y' });
+  assert.match(await check(env, f), /waiting/);
+  assert.equal(await check(env, f), 'rebuild requested');
+  assert.equal(hooks, 1);
 });

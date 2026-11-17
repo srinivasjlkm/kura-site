@@ -12,12 +12,23 @@ export function parseInfo(text = '') {
     if (!m) break;
     fields[m[1].trim().toLowerCase()] = m[2].trim();
   }
-  const body = lines.slice(i).join('\n').trim();
-  const paragraphs = body ? body.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean) : [];
+  // Every non-empty line is a paragraph: that is how text arrives from Google Docs and from Notepad.
+  const paragraphs = lines.slice(i).map((l) => l.trim()).filter(Boolean);
   return { fields, paragraphs };
 }
 
 const SIZES = { s: 'S', small: 'S', m: 'M', medium: 'M', l: 'L', large: 'L', xl: 'XL', 'x large': 'XL', 'x-large': 'XL', 'extra large': 'XL' };
+/** Splits paragraphs into sections at lines that start with "# ". Text before the first heading has title ''. */
+export function sections(paragraphs = []) {
+  const out = [];
+  for (const p of paragraphs) {
+    const h = p.match(/^#+\s*(.+)$/);
+    if (h) out.push({ title: h[1].trim(), paragraphs: [] });
+    else { if (!out.length) out.push({ title: '', paragraphs: [] }); out.at(-1).paragraphs.push(p); }
+  }
+  return out;
+}
+
 export const SIZE_NAMES = { S: 'Small', M: 'Medium', L: 'Large', XL: 'Extra large' };
 export function normalizeSize(v = '') { return SIZES[v.trim().toLowerCase()] || ''; }
 

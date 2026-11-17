@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseInfo, normalizeSize, slugify, orderImages, isYes, isImage } from '../scripts/parse.mjs';
+import { sections, parseInfo, normalizeSize, slugify, orderImages, isYes, isImage } from '../scripts/parse.mjs';
 
 test('fields then description', () => {
-  const r = parseInfo('Title: EK Loft\r\nSize: Medium\r\n\r\nFirst para\nwrapped.\r\n\r\nSecond.');
+  const r = parseInfo('Title: EK Loft\r\nSize: Medium\r\n\r\nFirst para.\r\n\r\nSecond.\nThird.');
   assert.deepEqual(r.fields, { title: 'EK Loft', size: 'Medium' });
-  assert.deepEqual(r.paragraphs, ['First para wrapped.', 'Second.']);
+  assert.deepEqual(r.paragraphs, ['First para.', 'Second.', 'Third.']);
 });
 test('empty and missing text', () => {
   assert.deepEqual(parseInfo(''), { fields: {}, paragraphs: [] });
@@ -32,4 +32,9 @@ test('slug, yes, image names', () => {
 });
 test('image order: numeric, cover first', () => {
   assert.deepEqual(orderImages(['10.jpg', '2.jpg', 'cover.png', '1.jpg']), ['cover.png', '1.jpg', '2.jpg', '10.jpg']);
+});
+test('sections split at # headings', () => {
+  const r = sections(['Intro.', '# Philosophy', 'A.', 'B.', '#Scope', 'C.']);
+  assert.deepEqual(r, [{ title: '', paragraphs: ['Intro.'] }, { title: 'Philosophy', paragraphs: ['A.', 'B.'] }, { title: 'Scope', paragraphs: ['C.'] }]);
+  assert.deepEqual(sections([]), []);
 });
