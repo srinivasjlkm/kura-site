@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { manifest, localName, fingerprintSource, download } from '../scripts/drive.mjs';
+import { manifest, localName, describe, download } from '../scripts/drive.mjs';
 import { check } from '../worker/watcher.js';
 
 const F = 'application/vnd.google-apps.folder';
@@ -22,14 +22,15 @@ function fakeFetch(calls = []) {
     const q = u.searchParams.get('q');
     if (!q) return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
     const parents = [...q.matchAll(/'([^']+)' in parents/g)].map((m) => m[1]);
-    return { ok: true, json: async () => ({ files: parents.flatMap((p) => (tree[p] || []).map((f) => ({ ...f, parents: [p] }))) }) };
+    if (parents.length !== 1) return { ok: false, status: 403, json: async () => ({ error: { message: 'refused' } }) };
+    return { ok: true, json: async () => ({ files: tree[parents[0]] || [] }) };
   };
 }
 
-test('manifest walks the folder in three requests and keeps only images and text', async () => {
+test('manifest asks about one folder at a time and keeps only images and text', async () => {
   const calls = [];
   const m = await manifest(fakeFetch(calls), 'k', 'root');
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 6);
   assert.deepEqual(m.projects.map((p) => p.name), ['EK Loft', 'Villa']);
   assert.deepEqual(m.projects[0].files.map((f) => f.name), ['01.jpg', '02.jpg', 'info']);
   assert.deepEqual(m.site.map((f) => f.name), ['home.txt']);
@@ -41,17 +42,23 @@ test('a Google Doc becomes a .txt file', async () => {
   const b = await download(fakeFetch(), 'k', { id: 'd1', name: 'info', mimeType: 'application/vnd.google-apps.document' });
   assert.equal(b.toString(), 'Title: X');
 });
-test('fingerprint changes when a file changes', async () => {
-  const m = await manifest(fakeFetch(), 'k', 'root');
-  const a = fingerprintSource(m);
-  m.projects[0].files[0].md5Checksum = 'changed';
-  assert.notEqual(a, fingerprintSource(m));
+test('description changes when a file changes', () => {
+  const a = describe(tree.p1);
+  const b = describe(tree.p1.map((f) => (f.id === 'i1' ? { ...f, md5Checksum: 'changed' } : f)));
+  assert.notEqual(a, b);
+  assert.ok(!a.includes('plan.dwg'));
 });
-test('watcher waits one round after a change, then rebuilds once', async () => {
-  const kv = new Map();
-  const env = { GOOGLE_API_KEY: 'k', DRIVE_FOLDER_ID: 'root', DEPLOY_HOOK: 'https://hook', STATE: { get: async (k) => kv.get(k) ?? null, put: async (k, v) => void kv.set(k, v) } };
-  const f = fakeFetch();
+test('watcher: records first, then waits for a quiet round before rebuilding once', async () => {
+  let saved = null, hooks = 0;
+  const env = { GOOGLE_API_KEY: 'k', DRIVE_FOLDER_ID: 'root', DEPLOY_HOOK: 'https://hook', STATE: { get: async () => saved, put: async (k, v) => void (saved = v) } };
+  const base = fakeFetch();
+  const f = async (u, o) => { if (o?.method === 'POST') hooks++; return base(u, o); };
+  assert.match(await check(env, f), /first look/);
+  assert.equal(await check(env, f), 'unchanged');
+  assert.equal(hooks, 0);
+  tree.p2.push({ id: 'n1', name: '01.jpg', mimeType: 'image/jpeg', md5Checksum: 'z' });
   assert.match(await check(env, f), /waiting/);
   assert.equal(await check(env, f), 'rebuild requested');
   assert.equal(await check(env, f), 'unchanged');
+  assert.equal(hooks, 1);
 });
