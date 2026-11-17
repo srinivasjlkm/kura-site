@@ -1,0 +1,16 @@
+# The folder watcher. Deployed by Cloudflare from this repository (root directory: worker).
+# Two secrets are set in the Cloudflare dashboard, never here: GOOGLE_API_KEY and DEPLOY_HOOK.
+name = "kura-folder-watcher"
+main = "watcher.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+DRIVE_FOLDER_ID = "1me4_HIVENtpHoSu7e5qNMN0ogYjhXD85"
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "42c8e13c620a4b58a3bb29c332785b74"
