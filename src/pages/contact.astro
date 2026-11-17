@@ -16,10 +16,10 @@ const formKey = c['form key'] || '';
   <div class="wrap">
     <h1 class="page-title">Contact</h1>
     <div class="grid contact">
-      {formKey && (
-        <form class="enquiry" id="enquiry" action="https://api.web3forms.com/submit" method="POST" novalidate>
+      {(
+        <form class="enquiry" id="enquiry" action="https://api.web3forms.com/submit" method="POST" novalidate data-demo={formKey ? undefined : ''}>
           <h2 class="h-section">Tell us about your project</h2>
-          <input type="hidden" name="access_key" value={formKey} />
+          {formKey && <input type="hidden" name="access_key" value={formKey} />}
           <input type="hidden" name="subject" value="New enquiry from the Kura website" />
           <input type="hidden" name="from_name" value="Kura website" />
           <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
@@ -32,7 +32,7 @@ const formKey = c['form key'] || '';
           <button type="submit">Send message</button>
         </form>
       )}
-      <div class={formKey ? 'contact-side' : 'contact-wide'}>
+      <div class="contact-side">
         <div class="rows">{rows.map(([k, v, href, label]) => (
           <div class="row"><h3>{k}</h3><p>{label ? <>{v}<br /><a href={href}>{label}</a></> : <a href={href}>{v}</a>}</p></div>
         ))}</div>
@@ -50,6 +50,8 @@ const formKey = c['form key'] || '';
         if (missing) { note.textContent = `Add your ${missing.closest('label').firstChild.textContent.trim().toLowerCase()} to send the message.`; note.dataset.state = 'error'; missing.focus(); return; }
         const email = form.elements.email;
         if (email.value && !email.checkValidity()) { note.textContent = 'Check the email address, or leave it empty.'; note.dataset.state = 'error'; email.focus(); return; }
+        // Until a form key is set in the contact file, the form is a preview and sends nothing.
+        if (form.hasAttribute('data-demo')) { note.dataset.state = 'ok'; note.textContent = 'This form is a preview and is not connected yet, so nothing was sent.'; return; }
         button.disabled = true; note.dataset.state = ''; note.textContent = 'Sending…';
         try {
           const r = await fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
