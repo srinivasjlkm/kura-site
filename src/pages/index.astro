@@ -1,16 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
 import Pic from '../components/Pic.astro';
-import Card from '../components/Card.astro';
+import Door from '../components/Door.astro';
+import Index from '../components/Index.astro';
 import { site, projects, sizeName, SIZE_ORDER, url } from '../data/load.js';
 const featured = projects.filter((p) => p.featured);
 const hero = featured[0] || projects[0];
-const rest = featured.filter((p) => p !== hero).slice(0, 4);
 const statement = site.home.fields.statement || site.studio.paragraphs[0] || '';
 // One block per scale, led by a featured project of that scale where there is one.
 const scales = SIZE_ORDER.map((s) => {
   const all = projects.filter((p) => p.size === s);
-  // Prefer a landscape cover so a block's height stays in step with its width.
   const wide = (p) => p.images[0].w / p.images[0].h >= 1.3;
   const pool = all.filter((p) => p !== hero);
   const pick = pool.find((p) => p.featured && wide(p)) || pool.find(wide) || pool[0] || all[0];
@@ -18,13 +17,13 @@ const scales = SIZE_ORDER.map((s) => {
 }).filter((x) => x.pick);
 const widths = { S: '25vw', M: '42vw', L: '66vw', XL: '100vw' };
 ---
-<Base description={statement} image={hero.images[0].files.at(-1).src} preload={hero.images[0]}>
-  <div slot="band" class="relief"><div class="wrap"><div class="grid"><h1 class="lead">{statement}</h1></div></div></div>
+<Base description={statement} image={hero.images[0].files.at(-1).src} preload={hero.images[0]} home>
+  <Door hero={hero} />
   <div class="wrap">
-    <figure class="hero">
-      <a href={url(`work/${hero.slug}/`)}><Pic image={hero.images[0]} alt={hero.title} eager /></a>
-      <figcaption><a href={url(`work/${hero.slug}/`)}>{hero.title}</a><span class="muted">{hero.location}</span></figcaption>
-    </figure>
+    <section class="statement grid">
+      <p class="statement-text">{statement}</p>
+      <a class="statement-link" href={url('studio/')}>About the studio</a>
+    </section>
 
     <section class="section">
       <h2 class="h-section">Work by scale</h2>
@@ -32,19 +31,19 @@ const widths = { S: '25vw', M: '42vw', L: '66vw', XL: '100vw' };
         {scales.map(({ s, count, pick }) => (
           <a class={`scale scale-${s}`} href={url(`work/?size=${s}`)}>
             <span class="scale-head"><span class="scale-letter">{s}</span><span class="muted">{sizeName(s)}, {count} {count === 1 ? 'project' : 'projects'}</span></span>
-            <Pic image={pick.images[0]} alt="" sizes={`(min-width: 600px) ${widths[s]}, 100vw`} />
+            <span class="scale-pic"><Pic image={pick.images[0]} alt="" sizes={`(min-width: 600px) ${widths[s]}, 100vw`} /></span>
             <span class="scale-foot">{pick.title}<span class="muted">{pick.location ? `, ${pick.location}` : ''}</span></span>
           </a>
         ))}
       </div>
     </section>
 
-    {rest.length > 0 && (
-      <section class="section">
-        <h2 class="h-section">Selected projects</h2>
-        <div class="cols-2">{rest.map((p) => <Card p={p} sizes="(min-width: 600px) 50vw, 100vw" />)}</div>
-        <p><a href={url('work/')} style="text-decoration:underline;text-underline-offset:.3em;text-decoration-thickness:1px">All {projects.length} projects</a></p>
-      </section>
-    )}
+    <section class="section">
+      <div class="index-head">
+        <h2 class="h-section">All projects</h2>
+        <a href={url('work/')}>See them with pictures</a>
+      </div>
+      <Index projects={projects} />
+    </section>
   </div>
 </Base>

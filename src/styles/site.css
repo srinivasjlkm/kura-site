@@ -208,3 +208,86 @@ dialog.search::backdrop { background: rgb(255 255 255 / 0.25); }
   .top nav { gap: 1rem; }
 }
 @media (max-width: 479px) { .studio-lists { grid-template-columns: 1fr; } .search-bar input { font-size: var(--t-l); } }
+
+/* ---------- W2 ----------
+   Same two colours and one typeface as W1. W2 adds one opening moment (the front door),
+   a header that follows you, a text index with a picture that follows the pointer,
+   and the studio name set large at both ends of every page. Every movement is skipped
+   when the visitor has asked their device for reduced motion. */
+.head-band { position: sticky; top: 0; z-index: 20; }
+.top { transition: padding-block 0.35s ease; }
+.mark span { max-height: 1.5em; overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease; }
+.head-band.is-small .top { padding-block: 0.9rem; }
+.head-band.is-small .mark span:not(:first-child) { max-height: 0; opacity: 0; }
+.has-door .head-band { position: fixed; inset: 0 0 auto; background: transparent; transition: background-color 0.3s ease; }
+.has-door .head-band.is-small { background: var(--red); }
+.has-door .head-band .mark { opacity: 0; transition: opacity 0.4s ease; }
+.has-door.door-open .head-band .mark { opacity: 1; }
+
+/* The door. The two leaves carry one wordmark between them, so it splits down the middle as they open. */
+.door { position: relative; }
+.door-stage { position: relative; height: 100svh; min-height: 30rem; overflow: hidden; }
+.door.is-live { height: 230svh; }
+.door.is-live .door-stage { position: sticky; top: 0; }
+.door-view { display: none; position: absolute; inset: 0; padding: 6rem var(--pad) 4rem; background: var(--bg); }
+.is-live .door-view { display: flex; flex-direction: column; justify-content: center; }
+.door-view > a { display: flex; justify-content: center; min-height: 0; }
+.door-view img { width: auto; height: auto; max-width: 100%; max-height: calc(100svh - 11rem); transform: scale(calc(1.06 - 0.06 * var(--p, 0))); transform-origin: center; }
+.door-view figcaption { display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.75rem; font-size: var(--t-s); opacity: clamp(0, calc(var(--p, 0) * 3 - 2), 1); }
+.door-view figcaption span { color: var(--muted); }
+.leaf { position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden; background: var(--red); will-change: transform; }
+.leaf-l { left: 0; transform: translateX(calc(var(--p, 0) * -101%)); box-shadow: inset -1px 0 0 var(--red-deep); }
+.leaf-r { right: 0; transform: translateX(calc(var(--p, 0) * 101%)); }
+.leaf-face { position: absolute; top: 0; bottom: 0; width: 200%; display: grid; place-content: center; justify-items: center; color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='48'%3E%3Cpath d='M0 .5h72M0 24.5h72M.5 0v24M36.5 24v24' stroke='%239c1822' fill='none'/%3E%3C/svg%3E"); background-position: center; }
+.leaf-l .leaf-face { left: 0; }
+.leaf-r .leaf-face { right: 0; }
+.door-word { font-size: clamp(4.5rem, 19vw, 22rem); font-weight: 500; line-height: 0.9; letter-spacing: 0.3em; margin-right: -0.3em; }
+.door-sub { display: flex; gap: 2.2em; margin-top: clamp(1.25rem, 3vw, 2.75rem); font-size: clamp(0.8125rem, 0.6rem + 0.7vw, 1.25rem); font-weight: 500; letter-spacing: 0.6em; text-transform: uppercase; margin-right: -0.6em; }
+.door-hint { display: none; position: absolute; left: 0; right: 0; bottom: 1.75rem; text-align: center; color: #fff; font-size: var(--t-s); letter-spacing: 0.04em; opacity: calc(1 - var(--p, 0) * 5); pointer-events: none; }
+.is-live .door-hint { display: block; }
+.door-hint::after { content: ''; display: block; width: 1px; height: 2.25rem; margin: 0.6rem auto 0; background: #fff; transform-origin: top; }
+@media (prefers-reduced-motion: no-preference) {
+  .door-word { animation: door-set 1.5s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  .door-sub { animation: door-fade 1s ease 0.6s both; }
+  .door-hint::after { animation: door-drop 2s ease-in-out 1.6s infinite; }
+}
+@keyframes door-set { from { letter-spacing: 0.75em; margin-right: -0.75em; opacity: 0; } to { letter-spacing: 0.3em; margin-right: -0.3em; opacity: 1; } }
+@keyframes door-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes door-drop { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* Home after the door */
+.statement { padding-top: var(--space); row-gap: 1.5rem; }
+.statement-text { grid-column: 1 / span 10; font-size: var(--t-xxl); line-height: 1.06; letter-spacing: -0.02em; color: var(--red); text-wrap: balance; }
+.statement-link { grid-column: 1 / -1; text-decoration: underline; text-underline-offset: 0.3em; text-decoration-thickness: 1px; }
+.scale-pic { display: block; }
+.scale-letter { display: inline-block; transition: transform 0.3s ease; }
+.scale:hover .scale-letter { transform: translateX(0.25em); }
+.scale:hover .scale-foot { color: var(--red); }
+
+/* The index: one line per project */
+.index-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: clamp(1.5rem, 3vw, 3rem); }
+.index-head .h-section { margin-bottom: 0; }
+.index-head a { font-size: var(--t-s); text-decoration: underline; text-underline-offset: 0.3em; text-decoration-thickness: 1px; }
+.index { border-top: 1px solid var(--line); list-style: none; padding: 0; }
+.index a { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: baseline; padding-block: 0.95rem; border-bottom: 1px solid var(--line); transition: color 0.2s ease; }
+.index a:hover, .index a:focus-visible { color: var(--red); }
+.index-title { transition: transform 0.3s ease; }
+.index a:hover .index-title, .index a:focus-visible .index-title { transform: translateX(0.75rem); }
+.index-title { display: block; grid-column: 1 / span 5; font-size: var(--t-l); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; }
+.index-type, .index-place, .index-scale { font-size: var(--t-s); color: var(--muted); }
+.index-type { grid-column: 6 / span 2; }
+.index-place { grid-column: 8 / span 3; }
+.index-scale { grid-column: 11 / span 2; text-align: right; }
+.peek { position: fixed; left: 0; top: 0; z-index: 15; width: min(22rem, 26vw, calc(24rem * var(--ar, 1.4))); aspect-ratio: var(--ar, 1.4); height: auto; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
+.peek.on { opacity: 1; }
+@media (max-width: 899px) {
+  .index-title { grid-column: 1 / -1; }
+  .index-type, .index-place { grid-column: span 6; }
+  .index-scale { display: none; }
+  .peek { display: none; }
+}
+
+/* The name again at the foot of every page */
+.foot-band { overflow: hidden; }
+.foot-word { font-size: clamp(4rem, 26.5vw, 32rem); font-weight: 500; line-height: 0.8; letter-spacing: 0.3em; margin-right: -0.3em; padding-top: clamp(2.5rem, 6vw, 5rem); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .top, .mark span, .index a, .index-title, .scale-letter, .peek { transition: none; } }

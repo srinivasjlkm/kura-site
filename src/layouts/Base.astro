@@ -3,7 +3,7 @@ import '@fontsource-variable/jost';
 import '../styles/site.css';
 import { site, url } from '../data/load.js';
 import Search from '../components/Search.astro';
-const { title, description = '', image, preload } = Astro.props;
+const { title, description = '', image, preload, home = false } = Astro.props;
 const full = title ? `${title} | Kura Design` : 'Kura Design | Architecture and design';
 const path = Astro.url.pathname;
 const nav = [['work/', 'Work'], ['studio/', 'Studio'], ['contact/', 'Contact']];
@@ -21,9 +21,9 @@ const c = site.contact.fields;
   {preload && <link rel="preload" as="image" imagesrcset={preload.files.map((f) => `${url(f.src)} ${f.width}w`).join(', ')} imagesizes="100vw" fetchpriority="high" />}
   {image && <meta property="og:image" content={new URL(url(image), Astro.site)} />}
 </head>
-<body>
+<body class={home ? 'is-home' : undefined}>
   <a class="skip" href="#main">Skip to content</a>
-  <div class="band">
+  <div class="band head-band" data-head>
     <header class="top wrap">
       <a class="mark" href={url()} aria-label="Kura Design Studio, home"><span>Kura</span><span>Design</span><span>Studio</span></a>
       <nav aria-label="Main">
@@ -34,7 +34,8 @@ const c = site.contact.fields;
     <slot name="band" />
   </div>
   <main id="main"><slot /></main>
-  <div class="band foot-band">
+  <div class="band foot-band relief">
+    <p class="foot-word wrap" aria-hidden="true">KURA</p>
     <footer class="foot wrap">
       <p class="mark"><span>Kura</span><span>Design</span><span>Studio</span></p>
       <p>{c.address}</p>
@@ -42,5 +43,11 @@ const c = site.contact.fields;
     </footer>
   </div>
   <Search />
+  <script>
+    const head = document.querySelector('[data-head]');
+    let last = -1;
+    const set = () => { const on = scrollY > 24; if (on !== last) { last = on; head?.classList.toggle('is-small', on); } };
+    addEventListener('scroll', set, { passive: true }); set();
+  </script>
 </body>
 </html>

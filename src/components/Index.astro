@@ -1,0 +1,50 @@
+---
+// W2: every project as one line of text. With a mouse, the project's cover follows the pointer.
+import { url, sizeName } from '../data/load.js';
+const { projects } = Astro.props;
+const thumb = (p) => (p.images[0].files.find((f) => f.width >= 640) || p.images[0].files.at(-1)).src;
+---
+<ol class="index" data-index>
+  {projects.map((p) => (
+    <li>
+      <a href={url(`work/${p.slug}/`)} data-thumb={url(thumb(p))} data-ar={(p.images[0].w / p.images[0].h).toFixed(3)} data-bg={p.images[0].bg}>
+        <span class="index-title">{p.title}</span>
+        <span class="index-type">{p.type}</span>
+        <span class="index-place">{p.location}</span>
+        <span class="index-scale">{sizeName(p.size)}</span>
+      </a>
+    </li>
+  ))}
+</ol>
+<img class="peek" data-peek alt="" aria-hidden="true" />
+
+<script>
+  const list = document.querySelector<HTMLElement>('[data-index]');
+  const peek = document.querySelector<HTMLImageElement>('[data-peek]');
+  if (list && peek && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    let x = 0, y = 0, tx = 0, ty = 0, raf = 0;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const step = () => {
+      x += (tx - x) * (still ? 1 : 0.18); y += (ty - y) * (still ? 1 : 0.18);
+      peek.style.transform = `translate(${x}px, ${y}px)`;
+      raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.5 ? requestAnimationFrame(step) : 0;
+    };
+    list.addEventListener('pointermove', (e) => {
+      tx = e.clientX + 24; ty = e.clientY - peek.offsetHeight / 2;
+      if (!raf) raf = requestAnimationFrame(step);
+    });
+    list.addEventListener('pointerover', (e) => {
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-thumb]');
+      if (!a) return;
+      if (peek.dataset.src !== a.dataset.thumb) {
+        peek.dataset.src = a.dataset.thumb!;
+        peek.src = a.dataset.thumb!;
+        peek.style.setProperty('--ar', a.dataset.ar!);
+        peek.style.setProperty('--ph', a.dataset.bg || '#e4dfdd');
+      }
+      if (!peek.classList.contains('on')) { x = tx = e.clientX + 24; y = ty = e.clientY - peek.offsetHeight / 2; }
+      peek.classList.add('on');
+    });
+    list.addEventListener('pointerleave', () => peek.classList.remove('on'));
+  }
+</script>
