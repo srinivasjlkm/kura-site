@@ -289,5 +289,7 @@ dialog.search::backdrop { background: rgb(255 255 255 / 0.25); }
 
 /* The name again at the foot of every page */
 .foot-band { overflow: hidden; }
-.foot-word { font-size: clamp(4rem, 26.5vw, 32rem); font-weight: 500; line-height: 0.8; letter-spacing: 0.3em; margin-right: -0.3em; padding-top: clamp(2.5rem, 6vw, 5rem); white-space: nowrap; }
+/* Sized from the width of the page column, so the word fills it on any screen without running off the edge. */
+.foot-word { font-size: calc((min(100vw - 20px, 110rem) - 2 * var(--pad)) / 3.6); font-weight: 500; line-height: 0.8; letter-spacing: 0.3em; padding-top: clamp(2.5rem, 6vw, 5rem); white-space: nowrap; }
+.foot-word span { display: inline-block; margin-right: -0.3em; }
 @media (prefers-reduced-motion: reduce) { .top, .mark span, .index a, .index-title, .scale-letter, .peek { transition: none; } }
