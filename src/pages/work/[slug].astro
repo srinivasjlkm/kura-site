@@ -30,11 +30,11 @@ if (row.length) rows.push(row);
     </div>
     {rows.length > 0 && (
       <div class="gallery">
-        {rows.map((r) => (
+        {rows.map((r, ri) => (
           <div class={`g-row ${r.length === 1 ? 'solo' : ''} ${r.length === 1 && r[0].ar < 1.2 ? 'tall' : ''}`}>
             {r.map(({ im, ar, i }) => (
               <button type="button" data-i={i} style={`--ar:${ar.toFixed(4)}`} aria-label={`View image ${i + 1} full screen`}>
-                <Pic image={im} alt={`${p.title}, image ${i + 1}`} sizes={`(min-width: 600px) ${Math.round(100 / r.length)}vw, 100vw`} />
+                <Pic image={im} alt={`${p.title}, image ${i + 1}`} sizes={`(min-width: 600px) ${Math.round(100 / r.length)}vw, 100vw`} soon={ri < 2} />
               </button>
             ))}
           </div>

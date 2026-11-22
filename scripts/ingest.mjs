@@ -1,6 +1,7 @@
 // Turns the content folder (the same layout as the Google Drive folder) into
 // resized images in public/media and one data file the pages read.
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import sharp from 'sharp';
 import { sections, parseInfo, normalizeSize, isYes, slugify, isImage, orderImages } from './parse.mjs';
@@ -31,7 +32,10 @@ async function resize(src, outDir, n) {
   const w = rotated ? meta.height : meta.width, h = rotated ? meta.width : meta.height;
   const widths = WIDTHS.filter((x) => x < w);
   if (widths.length < WIDTHS.length) widths.push(Math.min(w, WIDTHS.at(-1)));
-  const list = [...new Set(widths)].map((width) => ({ width, name: `${String(n).padStart(2, '0')}-${width}.webp` }));
+  // The name carries a short fingerprint of the original, so a replaced picture gets a new name.
+  // That lets browsers keep pictures for a year without ever showing an old one.
+  const tag = crypto.createHash('sha1').update(await fs.readFile(src)).update('q72').digest('hex').slice(0, 8);
+  const list = [...new Set(widths)].map((width) => ({ width, name: `${String(n).padStart(2, '0')}-${width}-${tag}.webp` }));
   const todo = [];
   for (const f of list) {
     const old = await fs.stat(path.join(outDir, f.name)).catch(() => null);
